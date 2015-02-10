@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+
+shopt -s nocasematch
+
+WorkingDir=$(dirname ${BASH_SOURCE[0]})
+
+Git=$(which git 2> /dev/null)
+if [[ $? -ne 0 ]]
+then
+    echo "ERROR: No git found in your path."
+    echo "ERROR: Unable to complete the setup."
+    echo "Exiting."
+    exit 0
+fi
+
+VIMRC="${HOME}/.vimrc"
+if [[ -f $VIMRC ]]
+then
+    # Rudimentary check for whether this has already been added.
+    grep -i vundle $VIMRC &> /dev/null
+    if [[ $? -ne 0 ]]
+    then
+        echo "Adding vundle boilerplate to $VIMRC"
+        mv $VIMRC ${VIMRC}.tmp
+        cat ${WorkingDir}/.vimrc ${VIMRC}.tmp > $VIMRC
+        /bin/rm ${VIMRC}.tmp
+    else
+        echo "No modifications made to $VIMRC - it looks like you already have vundle."
+    fi
+else
+    echo "Creating $VIMRC"
+    cp ${WorkingDir}/.vimrc $VIMRC
+fi
+
+# Now on to Vundle
+BundleDir="${HOME}/.vim/bundle/Vundle.vim"
+
+if [[ ! -d ${BundleDir} ]]
+then
+    mkdir -p ${BundleDir}
+fi
+
+BundleCount=$(/bin/ls -A1 $BundleDir 2> /dev/null | wc -l)
+if [[ -d $BundleDir && $BundleCount -gt 0 ]]
+then
+    cd $BundleDir
+    $Git pull --rebase
+else
+    $Git clone https://github.com/gmarik/Vundle.vim.git ${BundleDir}
+fi
+
+Vim=$(which vim)
+if [[ $? -eq 0 ]]
+then
+    $Vim +PluginInstall +qall
+else
+    echo "No vim found - unable to initialize Vundle plugins"
+fi
